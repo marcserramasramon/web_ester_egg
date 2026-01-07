@@ -4,22 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>No és màgia, és software</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ===== ESTILS GENERALS ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #000;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        /* ===== OVERLAY DE TERMINAL ===== */
+        #terminal-overlay {
+            position: fixed;
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+        }
+
+        /* Canvas Matrix de fons */
+        #matrix-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0.15;
+            z-index: 1;
+        }
+
+        /* ===== FINESTRA TERMINAL ===== */
+        .terminal-window {
+            position: relative;
+            z-index: 2;
+            width: 90%;
+            max-width: 800px;
+            height: 500px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #151515 100%);
+            border-radius: 10px;
+            box-shadow: 
+                0 30px 90px rgba(0, 255, 136, 0.3),
+                0 0 0 1px rgba(0, 255, 136, 0.2);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: terminalEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes terminalEnter {
+            0% {
+                transform: scale(0.8) rotateX(10deg);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) rotateX(0deg);
+                opacity: 1;
+            }
+        }
+
+        /* ===== CAPÇALERA ===== */
+        .terminal-header {
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #00ff8833;
+        }
+
+        .buttons { display: flex; gap: 8px; }
+
+        .dot {
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .dot.red {
+            background: linear-gradient(135deg, #ff5f56 0%, #ff2e24 100%);
+            cursor: pointer;
+        }
+
+        .dot.red:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px #ff5f56;
+        }
+
+        .dot.yellow { background: linear-gradient(135deg, #ffbd2e 0%, #ff9500 100%); }
+        .dot.green { background: linear-gradient(135deg, #27c93f 0%, #1ea32d 100%); }
+
+        .title {
+            color: #00ff88;
+            font-size: 13px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+        }
+
+        /* ===== COS TERMINAL ===== */
+        .terminal-body {
+            padding: 20px;
+            color: #00ff88;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow-y: auto;
+            flex-grow: 1;
+            text-shadow: 0 0 2px rgba(0, 255, 136, 0.5);
+        }
+
+        /* Scrollbar personalitzat */
+        .terminal-body::-webkit-scrollbar { width: 8px; }
+        .terminal-body::-webkit-scrollbar-track { background: #0a0a0a; }
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 4px;
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+            animation: lineAppear 0.3s ease;
+        }
+
+        @keyframes lineAppear {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Efectes especials per a línies destacades */
+        .warning { color: #ffaa00; font-weight: bold; }
+        .error { color: #ff4444; font-weight: bold; }
+        .success { color: #00ffff; font-weight: bold; }
+        .glitch {
+            animation: glitchEffect 0.3s ease;
+        }
+
+        @keyframes glitchEffect {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+        }
+
+        /* Cursor animat */
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 16px;
+            background: #00ff88;
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 5px #00ff88;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .terminal-window {
+                width: 95%;
+                height: 70vh;
+                font-size: 13px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <main class="content-container">
-        <h1>Manifest Tecnològic</h1>
-        <p>
-            En un món saturat de conceptes buits, cal recordar l'essència de la tecnologia.
-            <br><br>
-            <a href="#" id="egg-trigger" class="stealth-link">
-                No és intel·ligència, és software. Avui és disruptiu, demà serà la norma.
-            </a>
-        </p>
-    </main>
-
-    <div id="terminal-overlay" class="hidden" aria-hidden="true">
+    <div id="terminal-overlay">
         <!-- Efecte Matrix de fons -->
         <canvas id="matrix-bg"></canvas>
         
@@ -36,6 +203,156 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('terminal-overlay');
+            const content = document.getElementById('terminal-content');
+            const closeBtn = document.getElementById('close-btn');
+            const canvas = document.getElementById('matrix-bg');
+            const ctx = canvas.getContext('2d');
+
+            let isRunning = false;
+            let matrixInterval = null;
+
+            // ===== MISSATGES DE LA TERMINAL =====
+            const logLines = [
+                { text: "$ sudo access reality.core", delay: 800 },
+                { text: "[sudo] password for truth: ********", delay: 600 },
+                { text: "", delay: 300 },
+                { text: "Initializing system diagnostics...", delay: 500 },
+                { text: "> Scanning: Marketing narratives... ", class: "warning", delay: 700 },
+                { text: "  └─ Found: 'Revolutionary AI', 'Disruptive Innovation', 'Game-changer'", delay: 600 },
+                { text: "  └─ Status: [BYPASSED]", class: "success", delay: 500 },
+                { text: "", delay: 300 },
+                { text: "> Searching: Magic algorithms...", delay: 600 },
+                { text: "  └─ Searching in /usr/lib/hype/...", delay: 500 },
+                { text: "  └─ Searching in /opt/buzzwords/...", delay: 500 },
+                { text: "  └─ Status: [NOT FOUND]", class: "error", delay: 600 },
+                { text: "", delay: 400 },
+                { text: "> Loading REAL components:", delay: 600 },
+                { text: "  ├─ linear_algebra.so ████████████ 100%", delay: 400 },
+                { text: "  ├─ statistics.so ████████████ 100%", delay: 400 },
+                { text: "  ├─ calculus.so ████████████ 100%", delay: 400 },
+                { text: "  └─ optimization.so ████████████ 100%", delay: 500 },
+                { text: "", delay: 400 },
+                { text: "Compiling reality matrix...", delay: 800 },
+                { text: "Deconstructing hype layer...", class: "glitch", delay: 700 },
+                { text: "Extracting core truth...", delay: 900 },
+                { text: "", delay: 500 },
+                { text: "================================", delay: 300 },
+                { text: " SYSTEM ANALYSIS COMPLETE", class: "success", delay: 600 },
+                { text: "================================", delay: 300 },
+                { text: "", delay: 400 },
+                { text: "FINDINGS:", delay: 500 },
+                { text: "  • Intelligence: NOT FOUND", class: "error", delay: 400 },
+                { text: "  • Magic: NOT FOUND", class: "error", delay: 400 },
+                { text: "  • Disruption: TEMPORARY STATE", class: "warning", delay: 400 },
+                { text: "", delay: 300 },
+                { text: "CONCLUSION:", delay: 600 },
+                { text: "  └─ It's just linear algebra", delay: 500 },
+                { text: "  └─ It's just matrix multiplication", delay: 500 },
+                { text: "  └─ It's just calculus", delay: 500 },
+                { text: "", delay: 400 },
+                { text: "  └─ It's just software.", class: "success", delay: 800 },
+                { text: "", delay: 500 },
+                { text: "root@reality:~/truth/revealed# _", delay: 0 }
+            ];
+
+            // ===== EFECTE MATRIX DE FONS =====
+            function initMatrix() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                const chars = "01アイウエオカキクケコサシスセソタチツテト";
+                const fontSize = 14;
+                const columns = canvas.width / fontSize;
+                const drops = Array(Math.floor(columns)).fill(1);
+
+                matrixInterval = setInterval(() => {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.fillStyle = '#00ff88';
+                    ctx.font = `${fontSize}px monospace`;
+
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = chars[Math.floor(Math.random() * chars.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                            drops[i] = 0;
+                        }
+                        drops[i]++;
+                    }
+                }, 50);
+            }
+
+            // ===== TANCAR TERMINAL (opcional - tanca la finestra) =====
+            function closeTerminal() {
+                // Opcions: pots fer que desaparegui tot o que es minimitzi
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 400);
+                
+                if (matrixInterval) {
+                    clearInterval(matrixInterval);
+                    matrixInterval = null;
+                }
+            }
+
+            closeBtn.addEventListener('click', closeTerminal);
+            
+            // Tancar amb ESC
+            document.addEventListener('keydown', (e) => {
+                if (e.key === "Escape") {
+                    closeTerminal();
+                }
+            });
+
+            // ===== ESCRIURE LÍNIES AMB EFECTE TYPEWRITER =====
+            function typeLines(index) {
+                if (!isRunning || index >= logLines.length) {
+                    if (isRunning && index >= logLines.length) {
+                        content.innerHTML += '<span class="cursor"></span>';
+                    }
+                    return;
+                }
+
+                const line = logLines[index];
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'terminal-line' + (line.class ? ' ' + line.class : '');
+                content.appendChild(lineDiv);
+
+                let charIndex = 0;
+                const typeChar = () => {
+                    if (!isRunning) return;
+                    
+                    if (charIndex < line.text.length) {
+                        lineDiv.textContent += line.text[charIndex];
+                        charIndex++;
+                        content.scrollTop = content.scrollHeight;
+                        setTimeout(typeChar, 20 + Math.random() * 30);
+                    } else {
+                        setTimeout(() => typeLines(index + 1), line.delay);
+                    }
+                };
+
+                typeChar();
+            }
+
+            // Responsive canvas
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            // ===== INICIAR AUTOMÀTICAMENT =====
+            content.innerHTML = '';
+            isRunning = true;
+            initMatrix();
+            typeLines(0);
+        });
+    </script>
 </body>
 </html>
